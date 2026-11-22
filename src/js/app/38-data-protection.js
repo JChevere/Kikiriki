@@ -2,7 +2,19 @@
 /* ===== DATA PROTECTION ===== */
 
 function stateBytes(){try{return new Blob([JSON.stringify(S)]).size;}catch(e){return JSON.stringify(S).length;}}
-function photoBytes(){return S.flock.reduce((a,h)=>a+(h.photo?h.photo.length:0),0);}
+/* Photos live in IndexedDB (key "photos" = {henId: jpegDataURL}), not in the main save,
+   so they don't eat the ~5 MB localStorage budget. PHOTOS is the in-memory copy used for drawing.
+   If IndexedDB isn't available, photos stay inside S as before (h.photo). */
+const PHOTOS={};const PHOTO_CAP=40*1048576;
+function henPhoto(h){return (h&&(PHOTOS[h.id]||h.photo))||"";}
+function photoBytes(){let n=0;for(const k in PHOTOS)n+=PHOTOS[k].length;return n+S.flock.reduce((a,h)=>a+(h.photo?h.photo.length:0),0);}
+function photoPersist(){const live=new Set(S.flock.map(h=>h.id));for(const k in PHOTOS)if(!live.has(k))delete PHOTOS[k];return idbPut("photos",Object.assign({},PHOTOS));}
+/* Move any photos still inside S (older versions, old backups) into IndexedDB. Only removes them from S after IndexedDB confirms. */
+function photoMigrate(){const inl=S.flock.filter(h=>h.photo);if(!inl.length)return Promise.resolve(false);
+ inl.forEach(h=>{PHOTOS[h.id]=h.photo;});return photoPersist().then(ok=>{if(ok){inl.forEach(h=>{if(PHOTOS[h.id]===h.photo)delete h.photo;});save();}return ok;});}
+function photoBoot(){idbGet("photos").then(m=>{let any=false;if(m&&typeof m==="object")for(const k in m)if(typeof m[k]==="string"&&!PHOTOS[k]){PHOTOS[k]=m[k];any=true;}
+ photoMigrate().then(()=>{if(any)render();});});}
+function photoRemove(id){const h=S.flock.find(z=>z.id===id);delete PHOTOS[id];if(h)delete h.photo;save();photoPersist();render();}
 function save(){let ok=true;try{localStorage.setItem(KEY,JSON.stringify(S));SAFE.fail=false;}catch(e){ok=false;SAFE.fail=true;}
  idbMirror();if(!ok||document.getElementById("safeBar"))safeBanner();return ok;}
 function safeBanner(){const es=ES();let b=document.getElementById("safeBar");if(!SAFE.fail){if(b)b.remove();return;}if(!b){b=document.createElement("div");b.id="safeBar";b.setAttribute("role","alert");document.body.appendChild(b);}
@@ -17,7 +29,7 @@ function safeBoot(){try{if(navigator.storage&&navigator.storage.persist)navigato
  let local=null;try{local=JSON.parse(localStorage.getItem(KEY));}catch(e){kkWarn("boot-read",e);}
  idbGet("live").then(j=>{if(!j)return idbMirror();if(hasData(local))return;let o=null;try{o=JSON.parse(j);}catch(e){kkWarn("idb-read",e);}if(hasData(o)){S=Object.assign(S,o);try{localStorage.setItem(KEY,j);}catch(e){kkWarn("restore-write",e);}render();toast(ES()?"🛟 Recuperamos tus datos de la copia automática":"🛟 Restored your data from the automatic copy");}});}
 /* backup file */
-function backupBlob(){return new Blob([JSON.stringify({app:"kikiriki",v:2,at:new Date().toISOString(),data:S},null,1)],{type:"application/json"});}
+function backupBlob(){return new Blob([JSON.stringify({app:"kikiriki",v:3,at:new Date().toISOString(),data:S,photos:Object.assign({},PHOTOS)},null,1)],{type:"application/json"});}
 function backupDownload(){const es=ES();const name=`kikiriki-backup-${today()}.json`;const blob=backupBlob();
  const done=()=>{S.lastBk=today();save();toast(es?"💾 Copia descargada":"💾 Backup downloaded");if(S.tab==="settings")render();else safeBanner();};
  const cl=window.claude&&typeof window.claude.use==="function"?window.claude.use("downloads"):null;
@@ -26,15 +38,15 @@ function backupDownload(){const es=ES();const name=`kikiriki-backup-${today()}.j
 function backupLocal(name,blob,done){
  try{const f=new File([blob],name,{type:"application/json"});if(navigator.canShare&&navigator.canShare({files:[f]})&&/iPhone|iPad|Android/i.test(navigator.userAgent)){navigator.share({files:[f],title:"Kikirikí backup"}).then(done,()=>{});return;}}catch(e){}
  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);done();}
-function backupImport(){const es=ES();const i=document.createElement("input");i.type="file";i.accept="application/json,.json";i.onchange=()=>{const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);const d=o&&o.app==="kikiriki"?o.data:o;if(!d||typeof d!=="object"||!("flock" in d||"xp" in d))throw 0;
+function backupImport(){const es=ES();const i=document.createElement("input");i.type="file";i.accept="application/json,.json";i.onchange=()=>{const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);const d=o&&o.app==="kikiriki"?o.data:o;TMP.impPhotos=o&&o.photos&&typeof o.photos==="object"?o.photos:null;if(!d||typeof d!=="object"||!("flock" in d||"xp" in d))throw 0;
   if(TMP.impArm!==f.name){TMP.impArm=f.name;TMP.impData=d;render();return;}}catch(e){toast(es?"Ese archivo no es una copia de Kikirikí":"That file isn't a Kikirikí backup");}};r.readAsText(f);};i.click();}
-function backupApply(){const d=TMP.impData;if(!d)return;idbPut("before-import",JSON.stringify(S));S=Object.assign({},S,d);S.tab="home";S.sub=null;TMP.impArm=null;TMP.impData=null;if(typeof gameInit==="function"){S.game=S.game||null;gameInit();}save();render();toast(ES()?"✅ Copia restaurada":"✅ Backup restored");}
+function backupApply(){const d=TMP.impData;if(!d)return;idbPut("before-import",JSON.stringify(S));S=Object.assign({},S,d);if(TMP.impPhotos){for(const k in TMP.impPhotos)if(typeof TMP.impPhotos[k]==="string")PHOTOS[k]=TMP.impPhotos[k];TMP.impPhotos=null;}photoMigrate();photoPersist();S.tab="home";S.sub=null;TMP.impArm=null;TMP.impData=null;if(typeof gameInit==="function"){S.game=S.game||null;gameInit();}save();render();toast(ES()?"✅ Copia restaurada":"✅ Backup restored");}
 function snapRestore(d){idbGet("snaps").then(sn=>{if(!sn||!sn[d])return;if(TMP.snapArm!==d){TMP.snapArm=d;render();return;}idbPut("before-import",JSON.stringify(S));S=Object.assign({},S,JSON.parse(sn[d]));S.tab="home";S.sub=null;TMP.snapArm=null;save();render();toast(ES()?"✅ Restaurado":"✅ Restored");});}
 function safeCard(){const es=ES();const used=stateBytes(),pb=photoBytes();const pct=Math.min(100,used/SAFE.cap*100);const days=S.lastBk?Math.round((new Date(today())-new Date(S.lastBk))/864e5):null;
  if(!TMP.snapList){TMP.snapList=[];idbGet("snaps").then(sn=>{TMP.snapList=Object.keys(sn||{}).sort().reverse();const el=document.getElementById("snapBox");if(el)el.innerHTML=snapHTML();});}
  return`<div class="card safe"><h3>🛟 ${es?"Tus datos":"Your data"}</h3>
  <p class="muted" style="margin:0 0 10px;font-size:14px">${es?"Todo se guarda solo en este dispositivo y navegador. Borrar los datos del navegador o cambiar de teléfono los elimina, así que guarda una copia.":"Everything is saved only on this device and browser. Clearing browser data or switching phones erases it, so keep a backup."}</p>
- <div class="sf-meter"><div><i style="width:${pct.toFixed(1)}%;background:${pct>85?"#C2412A":pct>65?"#E3A21A":"#3B8A3A"}"></i><i class="ph" style="width:${(pb/SAFE.cap*100).toFixed(1)}%"></i></div><small>${(used/1048576).toFixed(2)} MB ${es?"de ~5 MB":"of ~5 MB"} · ${es?"fotos":"photos"} ${(pb/1048576).toFixed(2)} MB</small></div>
+ <div class="sf-meter"><div><i style="width:${pct.toFixed(1)}%;background:${pct>85?"#C2412A":pct>65?"#E3A21A":"#3B8A3A"}"></i></div><small>${es?"Registros":"Records"}: ${(used/1048576).toFixed(2)} MB ${es?"de ~5 MB":"of ~5 MB"}</small><small style="display:block">📷 ${Object.keys(PHOTOS).length+S.flock.filter(h=>h.photo).length} ${es?"fotos":"photos"} · ${(pb/1048576).toFixed(1)} MB ${es?"de 40 MB (aparte)":"of 40 MB (kept separately)"}</small></div>
  <div class="sf-last ${days==null||days>14?"warn":""}">${days==null?(es?"Aún no has guardado una copia.":"You haven't saved a backup yet."):days===0?(es?"Última copia: hoy ✓":"Last backup: today ✓"):(es?`Última copia: hace ${days} días`:`Last backup: ${days} days ago`)}</div>
  <div class="sf-btns"><button class="btn" onclick="backupDownload()">💾 ${es?"Descargar copia":"Download backup"}</button><button class="btn alt" onclick="backupImport()">📂 ${es?"Restaurar archivo":"Restore from file"}</button></div>
  ${TMP.impArm?`<div class="sf-confirm">${es?"Esto reemplazará tus datos actuales con":"This will replace your current data with"} <b>${esc(TMP.impArm)}</b> (${(TMP.impData.flock||[]).length} ${es?"aves":"birds"}). <button class="btn sm" onclick="backupApply()">${es?"Reemplazar":"Replace"}</button> <button class="btn alt sm" onclick="TMP.impArm=null;TMP.impData=null;render()">${es?"Cancelar":"Cancel"}</button></div>`:""}
@@ -43,5 +55,14 @@ function snapHTML(){const es=ES();const L2=TMP.snapList||[];return L2.length?L2.
 function backupNudge(){const es=ES();if(!hasData(S)||S.bkSnooze===today())return"";const days=S.lastBk?Math.round((new Date(today())-new Date(S.lastBk))/864e5):999;if(days<30)return"";const pct=stateBytes()/SAFE.cap*100;
  return`<div class="sf-nudge"><span>🛟</span><div><b>${pct>80?(es?"Tu almacenamiento está casi lleno":"Storage is almost full"):(es?"Protege el historial de tu parvada":"Protect your flock's history")}</b><small>${es?"Descarga una copia por si cambias de teléfono.":"Download a backup in case you switch phones."}</small></div><button class="btn sm" onclick="backupDownload()">${es?"Guardar":"Back up"}</button><button class="sf-x" aria-label="${es?"Ahora no":"Not now"}" onclick="S.bkSnooze=today();save();render()">✕</button></div>`;}
 /* lighter photos + budget */
-function henPhotoPick(id){const es=ES();const i=document.createElement("input");i.type="file";i.accept="image/*";i.onchange=()=>{const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const M=360,sc=Math.min(1,M/Math.max(im.width,im.height));const c=document.createElement("canvas");c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);c.getContext("2d").drawImage(im,0,0,c.width,c.height);let q=.74,url=c.toDataURL("image/jpeg",q);while(url.length>60000&&q>.4){q-=.08;url=c.toDataURL("image/jpeg",q);}
-  const h=S.flock.find(x=>x.id===id);const old=h.photo||"";if(photoBytes()-old.length+url.length>1.6*1048576){toast(es?"Límite de fotos alcanzado. Quita una foto primero.":"Photo limit reached. Remove a photo first.");return;}h.photo=url;if(!save()){h.photo=old||undefined;if(!old)delete h.photo;save();toast(es?"No hay espacio para la foto":"Not enough space for that photo");}render();};im.src=r.result;};r.readAsDataURL(f);};i.click();}
+function henPhotoPick(id){const es=ES();const i=document.createElement("input");i.type="file";i.accept="image/*";i.onchange=()=>{const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{
+  const M=900,sc=Math.min(1,M/Math.max(im.width,im.height));const c=document.createElement("canvas");c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);c.getContext("2d").drawImage(im,0,0,c.width,c.height);
+  let q=.82,url=c.toDataURL("image/jpeg",q);while(url.length>260000&&q>.45){q-=.07;url=c.toDataURL("image/jpeg",q);}
+  const h=S.flock.find(x=>x.id===id);if(!h)return;const old=henPhoto(h);
+  if(photoBytes()-old.length+url.length>PHOTO_CAP){toast(es?"Límite de fotos alcanzado. Quita una foto primero.":"Photo limit reached. Remove a photo first.");return;}
+  PHOTOS[id]=url;photoPersist().then(ok=>{
+   if(ok){delete h.photo;save();render();toast(es?"📷 Foto guardada":"📷 Photo saved");return;}
+   /* no IndexedDB: fall back to keeping a smaller copy inside the main save */
+   delete PHOTOS[id];let q2=.7,small=c.toDataURL("image/jpeg",q2);while(small.length>60000&&q2>.35){q2-=.08;small=c.toDataURL("image/jpeg",q2);}
+   h.photo=small;if(!save()){if(old)h.photo=old;else delete h.photo;save();toast(es?"No hay espacio para la foto. Descarga una copia y quita otras fotos.":"No room for the photo. Download a backup and remove other photos.");return;}render();toast(es?"📷 Foto guardada":"📷 Photo saved");});
+ };im.src=r.result;};r.readAsDataURL(f);};i.click();}

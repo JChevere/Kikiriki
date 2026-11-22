@@ -26,7 +26,7 @@ document.documentElement.lang=S.lang;
 render();
 IC.start();
 
-try{safeBoot();}catch(e){}
+try{safeBoot();}catch(e){}try{photoBoot();}catch(e){kkWarn("photoBoot",e);}
 
 /* a11y: keyboard + roles for clickable non-button elements */
 (function(){const fix=root=>{(root.querySelectorAll?root:document).querySelectorAll('[onclick]:not(button):not(a):not(input):not(select):not(textarea):not(label):not([role])').forEach(e=>{e.setAttribute("role","button");if(!e.hasAttribute("tabindex"))e.tabIndex=0;});};
