@@ -1,7 +1,7 @@
 /* Kikirikí offline worker.
    The whole app is one HTML file, so caching it (plus icons) makes it work with no signal.
    Bump VERSION whenever index.html changes so phones pick up the new copy. */
-const VERSION = "kikiriki-2026-11-22a";
+const VERSION = "kikiriki-2026-11-22b";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", e => {

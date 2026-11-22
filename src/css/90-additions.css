@@ -26,3 +26,31 @@ details.fm-more>*:not(summary){padding:0 12px 12px}
 .rm-cta{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin:6px 0 0}
 .rm-note{font-size:13.5px;color:var(--soft);margin:10px 2px 0;line-height:1.45}
 .rm-empty{color:var(--soft);font-size:14px;padding:6px 0}
+
+/* Home on phones/tablets: daily essentials first (glance → today → eggs → flock → game → reading) */
+@media (max-width:1023px){
+ .rd-grid{display:flex!important;flex-direction:column}
+ .rd-grid>.rd-main,.rd-grid>.rd-side{display:contents}
+ .hm-glance{order:1}.hm-today{order:2}.hm-carton{order:3}.hm-flock{order:4}.hm-game{order:5}.hm-recs{order:6}
+ .hm-today>*{margin-top:14px}
+}
+/* backup reminder: one compact line on phones */
+@media (max-width:600px){.sf-nudge small{display:none}.sf-nudge{padding:8px 8px 8px 12px}.sf-nudge b{font-size:14.5px}}
+
+/* Wide screens: no more full-width single rows */
+@media (min-width:1024px){
+ /* bird list -> card grid */
+ .fm-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;background:transparent;box-shadow:none;overflow:visible}
+ .fm-list>.fm-hrow{border:1px solid rgba(60,40,10,.06);border-radius:var(--rad);box-shadow:var(--shadow);padding:14px 16px;min-height:104px}
+ .fm-list>.fm-hrow:last-child{border:1px dashed rgba(60,40,10,.18)}
+ .fm-list>.fm-hrow.add{background:rgba(255,255,255,.6);box-shadow:none}
+ /* menu lists -> two columns */
+ .fm-group:not(.pad){display:grid;grid-template-columns:1fr 1fr;column-gap:0}
+ .fm-group:not(.pad)>.fm-row{border-right:1px solid var(--line)}
+ .fm-group:not(.pad)>.fm-row:nth-child(2n){border-right:0}
+ .fm-group:not(.pad)>.fm-row:only-child{grid-column:1/-1;border-right:0}
+ .rd-main .fm-group:not(.pad),.rd-side .fm-group:not(.pad){grid-template-columns:1fr}
+ .rd-main .fm-group:not(.pad)>.fm-row,.rd-side .fm-group:not(.pad)>.fm-row{border-right:0}
+}
+@media (min-width:1024px){.fm-group:not(.pad)>.fm-showall{grid-column:1/-1;border-right:0;border-top:1px solid var(--line)}}
+@media (min-width:1600px){.fm-list{grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}}
