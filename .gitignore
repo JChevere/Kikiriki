@@ -1,0 +1,6 @@
+build/
+dist/
+tests/output/
+__pycache__/
+*.png
+!public/*.png

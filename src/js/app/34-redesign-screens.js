@@ -1,0 +1,43 @@
+
+/* ===== REDESIGN — screens & flows ===== */
+const PASTELS=["#FFE7D3","#EDE7FB","#E3F6EA","#FDE6EE","#E4F0FB","#FFF2D6"];
+function henTint(h,i){const b=henBreedDef(h);const k=h.color||(b&&b.col)||"buff";const base=(PAT[k]||PAT.buff).b;try{if(_lum(base)>.82)return PASTELS[(i||0)%6];return _mx(base,"#FFFFFF",.8);}catch(e){return PASTELS[(i||0)%6];}}
+function rdSec(title,more,js){return`<div class="rd-sh"><h2>${title}</h2>${more?`<button onclick="${js}">${more}</button>`:""}</div>`;}
+function rdHenMini(h,i){const es=ES();const td=dayLog(today())[h.id]||0;return`<button class="rd-hm" onclick="go('flock','hen:${h.id}')"><div class="rd-hmart" style="background:${henTint(h,i)}">${henArt(h,96,td?"happy":"neutral")}${td?`<em>🥚 ${td}</em>`:""}</div><b>${esc(h.name)}</b><small>${esc((h.breed||(es?"Mestiza":"Mixed")).replace(/ \(.*\)/,""))}</small></button>`;}
+function rdFlockRow(){const es=ES();return`<div class="rd-row">${S.flock.map(rdHenMini).join("")}<button class="rd-hm add" onclick="rdAddOpen()"><div class="rd-hmart"><span>＋</span></div><b>${es?"Agregar":"Add bird"}</b><small>&nbsp;</small></button></div>`;}
+function rdTasks(){const es=ES();const T=todayTasks();const d=T.filter(x=>x.done).length;
+ return`<div class="card rd-tasks">${rdSec((es?"Hoy":"Today")+` <small>${d}/${T.length}</small>`,"")}<div class="bar" style="margin:-2px 0 10px"><i style="width:${T.length?Math.round(d/T.length*100):0}%"></i></div>${T.map(x=>`<div class="rd-t ${x.done?"done":""}"><button class="rd-ck" aria-label="toggle" onclick="${x.manual?`toggleTask('${x.id}')`:(x.done?"":x.act)}">${x.done?"✓":""}</button><div onclick="${x.manual?`toggleTask('${x.id}')`:(x.act||"")}"><b>${x.e} ${esc(x.n)}</b>${x.extra?`<small>${esc(x.extra)}</small>`:""}</div>${x.act&&!x.manual&&!x.done?`<span class="rd-go">›</span>`:""}</div>`).join("")}</div>`;}
+function rdArts(){ency();const es=ES();const day=Math.floor(Date.now()/864e5);const pool=ENCY_ARTS.filter(x=>!isRead(x.a.id)&&x.ch.id!=="ch-gloss");const P=(pool.length?pool:ENCY_ARTS);const out=[];for(let i=0;i<8&&i<P.length;i++)out.push(P[(day*7+i*13)%P.length]);
+ return`<div class="rd-row arts">${out.map((x,i)=>`<button class="rd-art-c" onclick="go('learn','art:${x.a.id}')"><div class="rd-acov" style="background:${PASTELS[(i+2)%6]}"><span>${x.ch.e}</span></div><small>${esc(L(x.ch.t||x.ch.n||{en:"",es:""}))}</small><b>${esc(L(x.a.t))}</b></button>`).join("")}</div>`;}
+/* hen detail */
+function lifeBar(h){const es=ES();const w=ageWeeks(h.hatch);const k=h.status||"laying";let pos,lab;
+ if(w==null){pos=k==="growing"?8:k==="resting"?70:40;lab=es?"Agrega su fecha de nacimiento para ubicarla":"Add her hatch date to place her";}
+ else{pos=w<18?w/18*20:w<104?20+(w-18)/86*35:w<208?55+(w-104)/104*25:Math.min(98,80+(w-208)/104*18);lab=ageText(w);}
+ const st=[[es?"Polla":"Pre-lay",0],[es?"Pico":"Peak",20],[es?"Bajando":"Slowing",55],[es?"Retiro":"Retired",80]];
+ return`<div class="rd-life"><div class="rd-lbar"><i style="left:${pos}%"></i></div><div class="rd-lst">${st.map(([n,p])=>`<span style="left:${p}%">${n}</span>`).join("")}</div><small>${lab}</small></div>`;}
+/* add-bird sheet */
+function rdAddOpen(){TMP.rdAdd={type:"hen",breed:"",name:"",hatch:""};rdSheet();}
+function rdSheet(){const es=ES();const a=TMP.rdAdd;let el=document.getElementById("rdSheet");if(!a){if(el)el.remove();return;}if(!el){el=document.createElement("div");el.id="rdSheet";document.body.appendChild(el);}
+ const T=[["hen",es?"Gallina":"Hen","hen"],["rooster",es?"Gallo":"Rooster","rooster"],["chick",es?"Pollito":"Chick","chick"]];const b=BREEDS.find(x=>x.n===a.breed);
+ el.innerHTML=`<div class="rd-scrim" onclick="TMP.rdAdd=null;rdSheet()"></div><div class="rd-sh2" role="dialog" aria-label="Add bird"><div class="rd-grab"></div><div class="rd-shh"><h2>${es?"Agregar ave":"Add a bird"}</h2><button class="rd-cb" onclick="TMP.rdAdd=null;rdSheet()" aria-label="close">✕</button></div>
+ <label>${es?"Tipo":"Type"} *</label><div class="rd-types">${T.map(([k,l,kind])=>`<button class="${a.type===k?"on":""}" onclick="TMP.rdAdd.type='${k}';rdSheet()">${drawHen(b?b.col:"buff",{size:54,kind,look:b?breedLook(b.n,b.col):{},mood:"happy"})}<b>${l}</b></button>`).join("")}</div>
+ <label>${es?"Raza":"Breed"}</label><select onchange="TMP.rdAdd.breed=this.value;rdSheet()"><option value="">${es?"Mestiza / no sé":"Mixed / not sure"}</option>${BREEDS.slice().sort((x,y)=>x.n.localeCompare(y.n)).map(x=>`<option ${a.breed===x.n?"selected":""}>${esc(x.n)}</option>`).join("")}</select>
+ <label>${es?"Nombre":"Name"} *</label><input id="rdName" value="${esc(a.name)}" maxlength="20" oninput="TMP.rdAdd.name=this.value" placeholder="${es?"p. ej. Rosie":"e.g. Rosie"}">
+ <label>${es?"Fecha de nacimiento":"Hatch date"}</label><input type="date" value="${esc(a.hatch)}" max="${today()}" onchange="TMP.rdAdd.hatch=this.value">
+ <button class="rd-add" onclick="rdAddSave()">${es?"Agregar ave":"Add bird"}</button><button class="rd-adv" onclick="TMP.rdAdd=null;rdSheet();cedInit();TMP.cedTab='type';TMP.addOpen=true;TMP.ft='birds';go('flock')">🎨 ${es?"Diseñar su look completo":"Design her full look instead"}</button></div>`;}
+function rdAddSave(){const a=TMP.rdAdd;const n=(a.name||"").trim();if(!n){const i=document.getElementById("rdName");i.focus();i.classList.add("err");return;}const b=BREEDS.find(x=>x.n===a.breed);
+ S.flock.push({id:Date.now().toString(36),name:n.slice(0,20),breed:a.breed,hatch:a.hatch,egg:guessEggColor(a.breed),status:a.type==="rooster"?"rooster":a.type==="chick"?"growing":"laying",color:b?b.col:undefined,look:b?Object.assign(breedLook(b.n,b.col),{kind:a.type==="chick"?"chick":a.type==="rooster"?"rooster":"auto"}):{kind:a.type==="chick"?"chick":a.type==="rooster"?"rooster":"auto"}});
+ TMP.rdAdd=null;rdSheet();save();petBoost("hen");addXP(5,"🐔");render();celebrate(ES()?`¡Bienvenida, ${n}!`:`Welcome, ${n}!`,ES()?"Ya es parte de la parvada.":"She's part of the flock now.","🐔");}
+/* egg stats */
+function rdEggStats(){const es=ES();const r=TMP.est||7;let tot,days,pts=[],labs=[];
+ if(r==="all"){const keys=Object.keys(S.eggLog).concat(Object.keys(S.eggs||{})).sort();const first=keys[0]||today();const months={};let d=new Date(first+"T00:00:00");const end=new Date();while(d<=end){const k=dstr(d);const m=k.slice(0,7);months[m]=(months[m]||0)+dayTotal(k);d.setDate(d.getDate()+1);}const M=Object.keys(months).slice(-12);pts=M.map(m=>months[m]);labs=M.map(m=>new Date(m+"-01T00:00:00").toLocaleDateString(S.lang,{month:"short"}));tot=allEggs();days=Math.max(1,Math.round((end-new Date(first+"T00:00:00"))/864e5)+1);}
+ else{for(let i=r-1;i>=0;i--){const x=new Date();x.setDate(x.getDate()-i);pts.push(dayTotal(dstr(x)));labs.push(x.toLocaleDateString(S.lang,r===7?{weekday:"short"}:{day:"numeric"}));}tot=pts.reduce((a,b)=>a+b,0);days=r;}
+ const avg=tot/days;const price=S.eggPrice!=null?S.eggPrice:0.45;const mx=Math.max(1,...pts);const W=320,H=120;const sx=i=>pts.length<2?W/2:i*(W/(pts.length-1));const sy=v=>H-8-(v/mx)*(H-24);
+ const path=pts.map((v,i)=>`${i?"L":"M"}${sx(i).toFixed(1)} ${sy(v).toFixed(1)}`).join(" ");const step=Math.ceil(labs.length/7);
+ return`<div class="card rd-est"><div class="rd-seg">${[[7,es?"7 días":"7 Days"],[30,es?"30 días":"30 Days"],["all",es?"Todo":"All Time"]].map(([k,l])=>`<button class="${r===k?"on":""}" onclick="TMP.est=${typeof k==="number"?k:"'all'"};render()">${l}</button>`).join("")}</div>
+ <div class="rd-big"><b>${tot}</b><small>${r==="all"?(es?"en total":"all time"):(es?`últimos ${r} días`:`last ${r} days`)}</small></div>
+ <div class="rd-avg"><div style="background:#FFF2D6"><b>${avg.toFixed(1)}</b><small>${es?"promedio diario":"daily avg"}</small></div><div style="background:#FFE7D3"><b>${(avg*7).toFixed(0)}</b><small>${es?"promedio semanal":"weekly avg"}</small></div></div>
+ <svg class="rd-chart" viewBox="-16 0 ${W+32} ${H+22}"><path d="${path} L${sx(pts.length-1)} ${H} L0 ${H}Z" fill="rgba(242,133,31,.12)"/><path d="${path}" fill="none" stroke="var(--ink)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>${pts.map((v,i)=>`<circle cx="${sx(i)}" cy="${sy(v)}" r="3.2" fill="var(--ink)"/>`).join("")}${labs.map((l,i)=>i%step===0?`<text x="${sx(i)}" y="${H+16}" text-anchor="middle" font-size="10" fill="#9A929E">${esc(l)}</text>`:"").join("")}</svg>
+ <div class="rd-val"><small>${es?"VALOR ESTIMADO":"ESTIMATED VALUE"}</small><b>${(tot*price).toFixed(2)}</b><span>${es?"a":"at"} $<input type="number" step="0.05" min="0" value="${price.toFixed(2)}" onchange="S.eggPrice=Math.max(0,parseFloat(this.value)||0);save();render()" aria-label="price per egg"> ${es?"por huevo":"per egg"}</span></div></div>`;}
+
+const PH={};

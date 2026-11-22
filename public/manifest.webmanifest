@@ -1,0 +1,19 @@
+{
+  "name": "Kikirikí — Backyard Chicken Guide",
+  "short_name": "Kikirikí",
+  "description": "Track your flock, eggs and health — offline, in English and Spanish.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FBF5EA",
+  "theme_color": "#2E5A37",
+  "lang": "en",
+  "categories": ["lifestyle", "education", "productivity"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

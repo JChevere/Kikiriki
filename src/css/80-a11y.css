@@ -1,0 +1,23 @@
+/* ===== accessibility pass ===== */
+html[data-theme="farm"] .btn,.fm-go,.rd-add,.fm-plus,.fm-badge{background:linear-gradient(180deg,#CC5D0C,#B5510A)!important;}
+html[data-theme="farm"] .btn.alt,html[data-theme="farm"] .btn.ghost{background:#fff!important;color:#2C4A27!important}
+html[data-theme="farm"] .chip.on,html[data-theme="farm"] .chip.sel,.fm-chips button.on,.fm-seg button.on,.fm-seg.pills button.on{background:#B5510A!important;border-color:#B5510A!important;color:#fff!important}
+html[data-theme="farm"] nav button{color:#5E574B!important}
+html[data-theme="farm"] nav button.on{color:var(--pri-t)!important}
+@media (max-width:1023px){html[data-theme="farm"] nav button .nl,html[data-theme="farm"] nav button.on .nl{font-size:12px!important;font-weight:700!important}html[data-theme="farm"] body{padding-bottom:calc(78px + env(safe-area-inset-bottom))!important}}
+.rd-art-c small,.fkick,.lkick{color:var(--pri-t)!important}
+.rd-val small{color:#1F6B39!important}
+.fm-3 .up b{color:#1F7A33!important}
+.rd-sh button{padding:10px 4px!important;min-height:40px}
+.cday button{width:38px!important;height:38px!important}
+.rd-ck{width:32px!important;height:32px!important;position:relative}.rd-ck::after{content:"";position:absolute;inset:-8px}
+.fm-x,.sf-x{min-width:40px;min-height:40px}
+.ecard .btn.alt.sm{min-width:40px;min-height:40px}
+.fm-hb{width:44px!important;height:44px!important}
+.urg,.tag-urgent{color:#3A2C05!important}
+[data-click]:focus-visible,[role=button]:focus-visible{outline:3px solid #B5510A;outline-offset:2px}
+.fm-lib div{text-shadow:0 1px 2px rgba(0,0,0,.35)}
+.eweek button{min-width:32px;min-height:44px}.btn.alt.sm{min-width:40px;min-height:40px}
+#updBar{position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:9999;display:flex;align-items:center;gap:12px;justify-content:space-between;background:#2E5A37;color:#fff;padding:12px 14px;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.25);font-size:15px}
+#updBar button{background:#fff;color:#2E5A37;border:0;border-radius:999px;padding:10px 16px;font-weight:700;font-size:15px;min-height:44px}
+.inst-steps{margin:0;padding-left:22px;line-height:1.6;font-size:15px}
