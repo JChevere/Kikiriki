@@ -4,3 +4,5 @@ tests/output/
 __pycache__/
 *.png
 !public/*.png
+!docs/
+!docs/*.png

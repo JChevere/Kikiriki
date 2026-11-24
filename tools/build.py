@@ -22,6 +22,9 @@ def build():
     for f in glob.glob(f'{ROOT}/public/*'): shutil.copy(f,f'{ROOT}/dist/')
     hosted=re.sub(r'<link rel="apple-touch-icon" href="data:[^"]*">','<link rel="apple-touch-icon" href="apple-touch-icon.png">',html,count=1)
     open(f'{ROOT}/dist/index.html','w',encoding='utf-8').write(hosted)
+    # GitHub Pages serves the docs/ folder: same files as dist/
+    shutil.rmtree(f'{ROOT}/docs',ignore_errors=True);shutil.copytree(f'{ROOT}/dist',f'{ROOT}/docs')
+    open(f'{ROOT}/docs/.nojekyll','w').close()
     print(f'built {len(html):,} bytes from {len(jsf)} JS + {len(glob.glob(ROOT+"/src/css/*.css"))} CSS files')
 if __name__=='__main__':
     build()
